@@ -1,0 +1,35 @@
+{
+    "name": "YouTube Downloader",
+    "short_name": "YouTubeDL",
+    "icons": [{
+      "src": "/images/i-64.png",
+        "sizes": "64x64",
+        "type": "image/png"
+      }, {
+        "src": "/images/i-128.png",
+        "sizes": "128x128",
+        "type": "image/png"
+      }, {
+        "src": "/images/i-256.png",
+        "sizes": "256x256",
+        "type": "image/png"
+      }, {
+        "src": "/images/i-512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }],
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#25b7d3",
+    "theme_color": "#25b7d3",
+    "share_target": {
+        "action": "/",
+        "method": "GET",
+        "enctype": "application/x-www-form-urlencoded",
+        "params": {
+          "title": "title",
+          "text": "text",
+          "url": "url"
+        }
+      }
+  }

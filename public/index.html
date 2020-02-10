@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="manifest" href="manifest.json">
+	<title>YouTube Downloader</title>
+
+	<script>
+		if ('serviceWorker' in navigator) {
+			window.addEventListener('load', () => {
+				navigator.serviceWorker.register('service-worker.js')
+					.then((reg) => {
+						console.log('Service worker registered.');
+					});
+			});
+		}
+	</script>
+	<script src="./bundle.js"></script>
+	<script src="./ponyfill.min.js"></script>
+	<script src="./streamSaver.js"></script>
+</head>
+
+<body>
+	<label for="youtubeLink">Insert link of YouTube video</label>
+	<br>
+	<input id="youtubeLink" type="text">
+
+	<button onclick="processLink()">Process</button>
+	<br>
+	<br>
+	<ul id="videoList">
+
+	</ul>
+
+
+	<script>
+		document.addEventListener('DOMContentLoaded', function () {
+
+
+			var linkInput = document.getElementById("youtubeLink");
+			const parsedUrl = new URL(window.location);
+			// searchParams.get() will properly handle decoding the values.
+			console.log('Title shared: ' + parsedUrl.searchParams.get('title'));
+			console.log('Text shared: ' + parsedUrl.searchParams.get('text'));
+			console.log('URL shared: ' + parsedUrl.searchParams.get('url'));
+
+			var sharedUrl = parsedUrl.searchParams.get('text');
+			if(sharedUrl){
+				linkInput.value = sharedUrl;
+			}
+
+			function formatBytes(bytes, decimals = 2) {
+				if (!bytes || bytes === 0) return '0 Bytes';
+
+				const k = 1024;
+				const dm = decimals < 0 ? 0 : decimals;
+				const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+				const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+				return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+			}
+
+			var videoList = document.getElementById('videoList');
+			var loader;
+
+			var Loader = function(link){
+				this.link = link;
+			}
+
+			Loader.prototype.getInfo = function(){
+				var id = this.link;
+
+				YTDL.getInfo(id, (err, info) => {
+					// console.log(err);
+					if(info){
+						console.log(info);
+						this.info = info;
+						this.title = info.title;
+						this.formats = info.formats;
+						this.filterVideo().sortSize();
+						console.log(this.formats);
+						this.formats.forEach(format => {
+							var li = document.createElement('li');
+							li.innerHTML = '';
+							li.innerHTML += format.width + "x" + format.height + " | ";
+							li.innerHTML += format.container + " | " + formatBytes(format.contentLength) + " | ";
+							li.innerHTML += '<button onclick="d(\'' + format.url + '\')">Download</button>';
+							videoList.appendChild(li);
+						});
+					}
+				});
+			}
+
+			Loader.prototype.filterVideo = function() {
+				this.formats = this.formats.filter((format) => {
+					return format.mimeType.includes("video");
+				});
+				return this;
+			}
+
+			Loader.prototype.sortSize = function(){
+				this.formats.sort((a, b) => {
+					return a.contentLength - b.contentLength;
+				});
+				return this
+			}
+
+			d = function(url){
+				console.log(url);
+				var format = loader.formats.filter(item => item.url == url)[0];
+				console.log(format);
+
+				const fileStream = streamSaver.createWriteStream(loader.title + '.' + format.container, {
+					size: format.contentLength
+  			});
+
+        fetch(url).then(res => {
+          const readableStream = res.body
+
+          // more optimized
+          if (window.WritableStream && readableStream.pipeTo) {
+            return readableStream.pipeTo(fileStream)
+              .then(() => console.log('done writing'))
+          }
+
+          window.writer = fileStream.getWriter()
+
+          const reader = res.body.getReader()
+          const pump = () => reader.read()
+            .then(res => res.done
+              ? writer.close()
+              : writer.write(res.value).then(pump))
+
+          pump()
+        })
+				
+			}
+
+			processLink = function(){
+				var link = linkInput.value;
+				// link = 'https://www.youtube.com/watch?v=NiJQ6P6raho';
+				if(link){
+					loader = new Loader(link);
+					window.loader_ = loader;
+					loader.getInfo();
+				}
+				
+			}
+
+		});
+	</script>
+</body>
+
+</html>

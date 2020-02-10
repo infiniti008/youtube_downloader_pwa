@@ -1,0 +1,1 @@
+window.YTDL = require('ytdl-core');

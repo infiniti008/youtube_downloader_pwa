@@ -1,0 +1,23 @@
+{
+  "name": "youtube_firebase",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "firebase-functions": "^3.3.0",
+    "webpack": "^4.41.5",
+    "ytdl-core": "^1.0.7"
+  },
+  "devDependencies": {
+    "webpack-cli": "^3.3.10"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack -p",
+    "watch": "webpack --watch"
+  },
+  "author": "",
+  "license": "ISC"
+}
