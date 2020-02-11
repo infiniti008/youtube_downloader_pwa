@@ -4,6 +4,7 @@ self.addEventListener('install', async function() {
         '/bundle.js',
         '/ponyfill.min.js',
         '/streamSaver.js',
+        'Inconsolata.woff2'
         // '/index.html',
     ])
 
@@ -41,7 +42,7 @@ self.addEventListener('fetch', event => {
     else if( url.includes('https://www.youtube.com') || url.includes('googlevideo.com/videoplayback') ){
         event.respondWith(fetch(prefix + url));
     }
-    else if(url.includes(".js")) {
+    else {
         event.respondWith(
             caches.match(event.request).then(function(response) {
               return response || fetch(event.request);

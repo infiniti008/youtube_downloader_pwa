@@ -7,6 +7,82 @@
 	<link rel="manifest" href="manifest.json">
 	<title>YouTube Downloader</title>
 
+	<style>
+
+		@font-face {
+			font-family: 'Inconsolata';
+			font-style: normal;
+			font-weight: 400;
+			font-display: swap;
+			src: local('Inconsolata Regular'), local('Inconsolata-Regular'), url(Inconsolata.woff2) format('woff2');
+			unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+		}
+
+		*{
+			font-family: 'Inconsolata', monospace;
+		}
+		body {
+			margin: 0;
+		}
+
+		.container {
+			text-align: center;
+			min-width: 380px;
+			max-width: 400px;
+			margin: 0 auto;
+			overflow-wrap: normal;
+		}
+		table {
+			margin: 0 auto;
+			border-spacing: 0;
+    		border-collapse: collapse;
+		}
+		td {
+			padding: 10px 5px;
+		}
+
+		td:nth-child(1), td:nth-child(2), td:nth-child(3){
+			text-align: left;
+		}
+		tr {
+			border-bottom: 2px solid tomato;
+		}
+
+		input {
+			text-align: center;
+			padding: 5px;
+		}
+		#spinner {
+			text-align: center;
+			width: 100vw;
+			height: 100vh;
+			position: absolute;
+			background-color: rgba(100, 100, 100, 0.5);
+		}
+
+		#loading {
+			display: inline-block;
+			width: 50px;
+			height: 50px;
+			border: 3px solid rgba(255,255,255,.3);
+			border-radius: 50%;
+			border-top-color: #fff;
+			animation: spin 1s ease-in-out infinite;
+			-webkit-animation: spin 1s ease-in-out infinite;
+			margin-top: 30vh;
+		}
+		.dn {
+			display: none;
+		}
+
+		@keyframes spin {
+			to { -webkit-transform: rotate(360deg); }
+		}
+			@-webkit-keyframes spin {
+			to { -webkit-transform: rotate(360deg); }
+		}
+	</style>
+
 	<script>
 		if ('serviceWorker' in navigator) {
 			window.addEventListener('load', () => {
@@ -22,26 +98,34 @@
 	<script src="./streamSaver.js"></script>
 </head>
 
-<body>
-	<label for="youtubeLink">Insert link of YouTube video</label>
-	<br>
-	<input id="youtubeLink" type="text">
+<body id="body">
+	<div id="spinner" class="dn">
+		<div id="loading"></div>
+	</div>
+	<div class="container">
+		<br>
+		<label for="youtubeLink">Insert link of YouTube video</label>
+		<br>
+		<br>
+		<input id="youtubeLink" type="text" size="45">
+		<br><br>
 
-	<button onclick="processLink()">Process</button>
-	<br>
-	<br>
-	<ul id="videoList">
+		<button onclick="processLink()">Get Info</button>
+		<br>
+		<p id="videoTitle"></p>
+		<table id="videoList">
 
-	</ul>
-
+		</table>
+		<br>
+	</div>
 
 	<script>
 		document.addEventListener('DOMContentLoaded', function () {
 
+			var spinnerEl = document.getElementById("spinner");
 
 			var linkInput = document.getElementById("youtubeLink");
 			const parsedUrl = new URL(window.location);
-			// searchParams.get() will properly handle decoding the values.
 			console.log('Title shared: ' + parsedUrl.searchParams.get('title'));
 			console.log('Text shared: ' + parsedUrl.searchParams.get('text'));
 			console.log('URL shared: ' + parsedUrl.searchParams.get('url'));
@@ -71,10 +155,12 @@
 			}
 
 			Loader.prototype.getInfo = function(){
+				spinnerEl.classList.toggle('dn')
 				var id = this.link;
 
 				YTDL.getInfo(id, (err, info) => {
 					// console.log(err);
+					videoList.innerHTML = "";
 					if(info){
 						console.log(info);
 						this.info = info;
@@ -83,14 +169,22 @@
 						this.filterVideo().sortSize();
 						console.log(this.formats);
 						this.formats.forEach(format => {
-							var li = document.createElement('li');
-							li.innerHTML = '';
-							li.innerHTML += format.width + "x" + format.height + " | ";
-							li.innerHTML += format.container + " | " + formatBytes(format.contentLength) + " | ";
-							li.innerHTML += '<button onclick="d(\'' + format.url + '\')">Download</button>';
-							videoList.appendChild(li);
+							var tr = document.createElement('tr');
+							tr.innerHTML = '';
+							tr.innerHTML += "<td>" + format.width + "x" + format.height + "</td>";
+							tr.innerHTML += "<td>" + format.container + "</td>";
+							tr.innerHTML += "<td>" + formatBytes(format.contentLength) + "</td>";
+							tr.innerHTML += '<td><button onclick="d(\'' + format.url + '\')">Download</button></td>';
+							tr.innerHTML += '<td><button onclick="a(\'' + format.url + '\')">Link</button></td>';
+							tr.innerHTML += '<td><button onclick="f(\'' + format.url + '\')">Frame</button></td>';
+							videoList.appendChild(tr);
+							
 						});
+
+						document.getElementById('videoTitle').innerHTML = info.title;
+						
 					}
+					spinnerEl.classList.toggle('dn');
 				});
 			}
 
@@ -115,28 +209,38 @@
 
 				const fileStream = streamSaver.createWriteStream(loader.title + '.' + format.container, {
 					size: format.contentLength
-  			});
+  				});
 
-        fetch(url).then(res => {
-          const readableStream = res.body
+				fetch(url).then(res => {
+				const readableStream = res.body
 
-          // more optimized
-          if (window.WritableStream && readableStream.pipeTo) {
-            return readableStream.pipeTo(fileStream)
-              .then(() => console.log('done writing'))
-          }
+				if (window.WritableStream && readableStream.pipeTo) {
+					return readableStream.pipeTo(fileStream)
+					.then(() => console.log('done writing'))
+				}
 
-          window.writer = fileStream.getWriter()
+				window.writer = fileStream.getWriter()
 
-          const reader = res.body.getReader()
-          const pump = () => reader.read()
-            .then(res => res.done
-              ? writer.close()
-              : writer.write(res.value).then(pump))
+				const reader = res.body.getReader()
+				const pump = () => reader.read()
+					.then(res => res.done
+					? writer.close()
+					: writer.write(res.value).then(pump))
 
-          pump()
-        })
-				
+				pump()
+				})
+			}
+			a = function(url){
+				var a = document.createElement('a');
+				a.href = url;
+				a.setAttribute('download', "asd.mp4")
+				a.click();
+			}
+			f = function(url){
+				var bodyEl = document.getElementById('body');
+				var iframeEl = document.createElement('iframe');
+				iframeEl.src = url;
+				bodyEl.appendChild(iframeEl);
 			}
 
 			processLink = function(){
